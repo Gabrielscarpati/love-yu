@@ -1,44 +1,42 @@
-import { db, storage } from '../config/firebase';
-import { collection, addDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { FormData } from '../types';
+import { initializeApp, getApps } from "firebase/app";
+import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import { firebaseConfig } from "../config/firebase";
+import type { FormData } from "../types";
 
-export const uploadImage = async (file: File, path: string): Promise<string> => {
-  const storageRef = ref(storage, `${path}/${file.name}-${Date.now()}`);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
-};
+// Initialize Firebase
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const db = getFirestore(app);
+const storage = getStorage(app);
 
-export const createWebsite = async (data: FormData, selectedPlan: number): Promise<string> => {
+export const createWebsite = async (formData: FormData, selectedPlan: number) => {
   try {
-    // Upload header images
-    const headerImageUrls = await Promise.all(
-      data.headerImages.map(img => uploadImage(img.file, 'header-images'))
-    );
-
-    // Upload gallery images
-    const galleryImageUrls = await Promise.all(
-      data.galleryImages.map(img => uploadImage(img.file, 'gallery-images'))
-    );
-
-    // Create the website document
-    const websiteData = {
-      couplesName: data.couplesName,
-      startDate: data.startDate,
-      startTime: data.startTime,
-      message: data.message,
-      youtubeUrl: data.youtubeUrl,
-      headerImages: headerImageUrls,
-      galleryImages: galleryImageUrls,
-      selectedPlan,
-      createdAt: new Date().toISOString(),
-      status: 'active'
-    };
-
-    const docRef = await addDoc(collection(db, 'websites'), websiteData);
+    const docRef = await addDoc(collection(db, "websites"), {
+      couplesName: formData.couplesName,
+      email: formData.email,
+      startDate: formData.startDate,
+      startTime: formData.startTime,
+      message: formData.message,
+      youtubeUrl: formData.youtubeUrl,
+      headerImages: formData.headerImages.map(img => img.url),
+      galleryImages: formData.galleryImages.map(img => img.url),
+      plan: selectedPlan,
+      userEmail: formData.email,
+      urlSee: `https://loveyou-9e3bf.web.app/${formData.couplesName}`,
+      urlUpdate: `https://loveyou-9e3bf.web.app/${formData.couplesName}/${generateRandomSegment(20)}`
+    });
     return docRef.id;
-  } catch (error) {
-    console.error('Error creating website:', error);
-    throw error;
+  } catch (e) {
+    console.error("Error adding document: ", e);
+    throw e;
   }
 };
+
+function generateRandomSegment(length: number): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}

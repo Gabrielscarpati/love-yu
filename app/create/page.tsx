@@ -2,12 +2,14 @@
 
 import React, { useState, ChangeEvent, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { createWebsite } from '../services/firebase';
 import { User, Clock, Music, ImagePlus, Heart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { FormData, CharacterCounts, PricingOption, BenefitsByPlan } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import RelationshipPreview from '../_components/RelationshipPreview';
+import { createWebsite } from "../services/firebase";
+import YouTube from 'react-youtube';
+import RelationshipCounter from '../_components/RelationshipCounter';
 
 const CustomizePage: React.FC = () => {
   const router = useRouter();
@@ -20,7 +22,10 @@ const CustomizePage: React.FC = () => {
     message: '',
     youtubeUrl: '',
     headerImages: [],
-    galleryImages: []
+    galleryImages: [],
+    userEmail: '',
+    urlSee: '',
+    urlUpdate: ''
   });
 
   const [characterCounts, setCharacterCounts] = useState<CharacterCounts>({
@@ -120,20 +125,48 @@ const CustomizePage: React.FC = () => {
     monthly: formData.galleryImages.map(img => img.url)
   };
 
+  // Utility to generate a 20-char string of letters & numbers
+  function generateRandomSegment(length: number): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  // Email validation function
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleCreateWebsite = useCallback(async () => {
     try {
       setIsSubmitting(true);
-      
-      // Validate form
+
       if (!formData.couplesName || !formData.startDate || !formData.startTime) {
         alert('Please fill in all required fields');
         return;
       }
 
-      // Create website and get the ID
-      const websiteId = await createWebsite(formData, selectedPlan);
-      
-      // Redirect to the new website
+      if (!isValidEmail(formData.userEmail)) {
+        alert('Please enter a valid email address');
+        return;
+      }
+
+      const randomSegment = generateRandomSegment(20);
+
+      // Populate new fields
+      const updatedFormData = {
+        ...formData,
+        userEmail: formData.email,
+        urlSee: `https://example.com/${formData.couplesName}`,
+        urlUpdate: `https://example.com/${formData.couplesName}/${randomSegment}`
+      };
+
+      // Pass updatedFormData to Firebase
+      const websiteId = await createWebsite(updatedFormData, selectedPlan);
       router.push(`/website/${websiteId}`);
     } catch (error) {
       console.error('Error creating website:', error);
@@ -143,9 +176,23 @@ const CustomizePage: React.FC = () => {
     }
   }, [formData, selectedPlan, router]);
 
+  const getYouTubeVideoId = (url: string): string | null => {
+    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[7].length === 11) ? match[7] : null;
+  };
+
+  const opts = {
+    height: '390',
+    width: '100%',
+    playerVars: {
+      autoplay: 0,
+    },
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-900 to-red-950 p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full">
         <h1 className="text-4xl font-bold text-white mb-8">Customize Your Page!</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -164,10 +211,10 @@ const CustomizePage: React.FC = () => {
                     onChange={handleInputChange}
                     className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white placeholder-pink-300/50"
                     placeholder="Henry and Susan (Only Use Characters)"
-                    maxLength={20}
+                    maxLength={40} 
                   />
                   <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-pink-300 text-sm">
-                    {characterCounts.couplesName}/20
+                    {characterCounts.couplesName}/40
                   </span>
                 </div>
                 <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
@@ -232,6 +279,35 @@ const CustomizePage: React.FC = () => {
                     onChange={handleInputChange}
                     className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white placeholder-pink-300/50"
                     placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                </div>
+                <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
+                
+                {/* Add the YouTube player */}
+                {formData.youtubeUrl && getYouTubeVideoId(formData.youtubeUrl) && (
+                  <div className="mt-4">
+                    <YouTube
+                      videoId={getYouTubeVideoId(formData.youtubeUrl)!}
+                      opts={opts}
+                      className="w-full rounded-lg overflow-hidden"
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <label className="block text-pink-200 mb-2">
+                  Enter the email address where we will send the QR code for you to share with your loved one.
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300 w-5 h-5" />
+                  <input
+                    type="email"
+                    name="userEmail"
+                    value={formData.userEmail}
+                    onChange={handleInputChange}
+                    className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white placeholder-pink-300/50"
+                    placeholder="e.g. yourname@example.com"
+                    required
                   />
                 </div>
                 <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
@@ -363,10 +439,15 @@ const CustomizePage: React.FC = () => {
         {/* Preview Section */}
         <div className="mt-12">
           <h2 className="text-3xl font-bold text-white mb-8">Preview</h2>
-          <div className="bg-white rounded-xl overflow-hidden shadow-2xl">
+          {/* Remove max-w-4xl constraint and update container classes */}
+          <div className="w-full bg-white rounded-xl overflow-hidden shadow-2xl">
             <RelationshipPreview 
               images={previewImages}
               coupleName={formData.couplesName || undefined}
+              youtubeUrl={formData.youtubeUrl}
+              message={formData.message}
+              startDate={formData.startDate}
+              startTime={formData.startTime}
             />
           </div>
         </div>
