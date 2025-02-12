@@ -2,7 +2,7 @@
 
 import React, { useState, ChangeEvent, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Clock, Music, ImagePlus, Heart } from 'lucide-react';
+import { User, ChevronDown, Music, ImagePlus, Heart, Calendar, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { FormData, CharacterCounts, PricingOption, BenefitsByPlan } from '../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -211,10 +211,9 @@ const CustomizePage: React.FC = () => {
                     onChange={handleInputChange}
                     className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white placeholder-pink-300/50"
                     placeholder="Henry and Susan (Only Use Characters)"
-                    maxLength={40} 
                   />
                   <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-pink-300 text-sm">
-                    {characterCounts.couplesName}/40
+                    {characterCounts.couplesName}
                   </span>
                 </div>
                 <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
@@ -224,13 +223,15 @@ const CustomizePage: React.FC = () => {
                 <div className="relative">
                   <label className="block text-pink-200 mb-2">Relationship Start Date</label>
                   <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300 w-5 h-5" />
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white w-5 h-5" />
                     <input
                       type="date"
                       name="startDate"
                       value={formData.startDate}
                       onChange={handleInputChange}
                       className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white"
+                      min="1900-01-01"
+                      max={new Date().toISOString().split("T")[0]} // Set max to today's date
                     />
                   </div>
                   <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
@@ -239,7 +240,7 @@ const CustomizePage: React.FC = () => {
                 <div className="relative">
                   <label className="block text-pink-200 mb-2">Relationship Start Time</label>
                   <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300 w-5 h-5" />
+                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white w-5 h-5" />
                     <input
                       type="time"
                       name="startTime"
@@ -260,10 +261,10 @@ const CustomizePage: React.FC = () => {
                   onChange={handleInputChange}
                   className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-4 text-white placeholder-pink-300/50 min-h-[120px]"
                   placeholder="Share your heartfelt message here. Make it truly memorable! ❤"
-                  maxLength={20}
+                  maxLength={2000}
                 />
                 <span className="absolute right-3 bottom-3 text-pink-300 text-sm">
-                  {characterCounts.message}/20
+                  {characterCounts.message}
                 </span>
                 <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
               </div>
