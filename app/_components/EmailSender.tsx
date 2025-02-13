@@ -34,8 +34,8 @@ export default function CreatePage() {
     const toEmail = "gabrielbrsc15@gmail.com";
     const emailData: EmailData = {
       coupleNames: "John & Jane",
-      websiteUrl: "https://loveyou-9e3bf.web.app/abc123",
-      updateUrl: "https://loveyou-9e3bf.web.app/abc123/edit"
+      websiteUrl: "https://luv-stories.com/abc123",
+      updateUrl: "https://luv-stories.com/abc123/edit"
     };
 
     // After creating the website in Firebase, send the email confirmation.

@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import emailjs from '@emailjs/browser';
+
+emailjs.init(process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!);
 
 export const metadata: Metadata = {
   title: 'luv.stories',

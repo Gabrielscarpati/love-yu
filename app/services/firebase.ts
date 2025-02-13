@@ -7,6 +7,7 @@ import {
 } from "firebase/storage";
 import { firebaseConfig } from "../config/firebase";
 import type { FormData } from "../types";
+import { sendEmail } from './emailService';
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const db = getFirestore(app);
@@ -55,14 +56,55 @@ export const createWebsite = async (formData: FormData, selectedPlan: number) =>
     await updateDoc(docRef, {
       headerImages: headerImageUrls,
       galleryImages: galleryImageUrls,
-      urlUpdate: `https://loveyou-9e3bf.web.app/${docRef.id}`,
+      urlUpdate: `https://luv-stories.com/${docRef.id}`,
     });
 
-
+    // After successful website creation, send confirmation email
+    
     return docRef.id;
   } catch (e) {
     console.error("Error:", e);
     throw e;
+  }
+};
+
+export const checkInfluencerCode = async (code: string): Promise<Influencer | null> => {
+  try {
+    const docRef = doc(db, "influencers", code);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return docSnap.data() as Influencer;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error checking influencer code:", error);
+    return null;
+  }
+};
+
+// Add this new function to update influencer statistics
+export const updateInfluencerStats = async (
+  influencerId: string, 
+  transactionAmount: number
+) => {
+  try {
+    const influencerRef = doc(db, "influencers", influencerId);
+    
+    // Get current stats
+    const docSnap = await getDoc(influencerRef);
+    if (!docSnap.exists()) return;
+
+    const currentStats = docSnap.data();
+    const commission = transactionAmount * 0.1; // 10% of the transaction
+
+    // Update stats
+    await updateDoc(influencerRef, {
+      amountCollected: (currentStats.amountCollected || 0) + commission,
+      appliedQnty: (currentStats.appliedQnty || 0) + 1
+    });
+  } catch (error) {
+    console.error("Error updating influencer stats:", error);
   }
 };
 

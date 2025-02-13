@@ -7,10 +7,21 @@ import { Card, CardContent } from '@/components/ui/card';
 import type { FormData, CharacterCounts, PricingOption, BenefitsByPlan } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import RelationshipPreview from '../_components/RelationshipPreview';
-import { createWebsite } from "../services/firebase";
 import { sendConfirmationEmail, EmailData } from '../utils/sendConfirmationEmail';
 import YouTube from 'react-youtube';
 import getStripe from '../utils/get-stripe';
+import { 
+  createWebsite, 
+  checkInfluencerCode, 
+  updateInfluencerStats 
+} from "../services/firebase";
+
+interface Influencer {
+  id: string;
+  name: string;
+  amountCollected: number;
+  appliedQnty: number;
+}
 
 const CustomizePage: React.FC = () => {
   const router = useRouter();
@@ -43,6 +54,15 @@ const CustomizePage: React.FC = () => {
   ];
 
   const [selectedPlan, setSelectedPlan] = useState<number>(0);
+  const [hasReferral, setHasReferral] = useState<boolean>(false);
+  const [referralCode, setReferralCode] = useState<string>("");
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
+  const [isValidCode, setIsValidCode] = useState(false);
+  const [discountedPrices, setDiscountedPrices] = useState<PricingOption[]>([]);
+
+  useEffect(() => {
+    setDiscountedPrices([...pricingOptions]);
+  }, []);
 
   const benefitsByPlan: BenefitsByPlan = {
     0: [
@@ -140,6 +160,43 @@ const CustomizePage: React.FC = () => {
     return emailRegex.test(email);
   };
 
+  // Add this function near your other validation functions
+  const isValidReferralCode = (code: string): boolean => {
+    return code.length === 6;
+  };
+
+  // Add this function to handle referral code validation
+  const handleReferralCodeChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const code = e.target.value.slice(0, 6);
+    setReferralCode(code);
+
+    // Reset prices if code length is not 6
+    if (code.length !== 6) {
+      setIsValidCode(false);
+      setDiscountedPrices([...pricingOptions]);
+      return;
+    }
+
+    setIsCheckingCode(true);
+    const influencer = await checkInfluencerCode(code);
+    
+    if (influencer) {
+      setIsValidCode(true);
+      // Calculate discounted prices
+      const discounted = pricingOptions.map(option => ({
+        ...option,
+        price: (parseFloat(option.price) * 0.9).toFixed(2) // 10% discount
+      }));
+      setDiscountedPrices(discounted);
+    } else {
+      setIsValidCode(false);
+      setDiscountedPrices([...pricingOptions]); // Reset prices if code is invalid
+      alert('Invalid referral code');
+    }
+    setIsCheckingCode(false);
+  };
+
+  // Modify the handleCreateWebsite function
   const handleCreateWebsite = useCallback(async () => {
     try {
       setIsSubmitting(true);
@@ -154,6 +211,12 @@ const CustomizePage: React.FC = () => {
         return;
       }
 
+      // Updated referral code validation with new error message
+      if (hasReferral && !isValidReferralCode(referralCode)) {
+        alert('If the checkbox is selected you need to enter all the 6 numbers to receive the discount');
+        return;
+      }
+
       // Populate new fields
       const updatedFormData = {
         ...formData,
@@ -164,6 +227,15 @@ const CustomizePage: React.FC = () => {
       
       // Pass updatedFormData to Firebase
       const websiteId = await createWebsite(updatedFormData, selectedPlan);
+      
+      // Calculate the transaction amount
+      const transactionAmount = parseFloat(discountedPrices[selectedPlan]?.price || pricingOptions[selectedPlan].price);
+
+      // Update influencer stats if a valid referral code was used
+      if (hasReferral && isValidCode && referralCode) {
+        await updateInfluencerStats(referralCode, transactionAmount);
+      }
+
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -171,9 +243,9 @@ const CustomizePage: React.FC = () => {
         },
         body: JSON.stringify({
           plan: pricingOptions[selectedPlan].plan,
-          price: pricingOptions[selectedPlan].price,
+          price: discountedPrices[selectedPlan]?.price || pricingOptions[selectedPlan].price,
           period: pricingOptions[selectedPlan].period,
-          websiteId:websiteId,
+          websiteId: websiteId,
         }),
       });
   
@@ -188,8 +260,8 @@ const CustomizePage: React.FC = () => {
       const toEmail = "gabrielbrsc15@gmail.com";
       const emailData: EmailData = {
         coupleNames: "John & Jane",
-        websiteUrl: "https://loveyou-9e3bf.web.app/abc123",
-        updateUrl: "https://loveyou-9e3bf.web.app/abc123/edit"
+        websiteUrl: "https://luv-stories.com/abc123",
+        updateUrl: "https://luv-stories.com/abc123/edit"
       };
 
       await sendConfirmationEmail(toEmail, emailData);
@@ -201,7 +273,7 @@ const CustomizePage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, selectedPlan, router]);
+  }, [formData, selectedPlan, router, hasReferral, isValidCode, referralCode, discountedPrices, pricingOptions]);
 
   const getYouTubeVideoId = (url: string): string | null => {
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
@@ -433,7 +505,7 @@ const CustomizePage: React.FC = () => {
           <div className="space-y-6">
             {/* Price Selection */}
             <div className="flex flex-wrap gap-2">
-              {pricingOptions.map((option, i) => (
+              {discountedPrices.map((option, i) => (
                 <button
                   key={i}
                   onClick={() => setSelectedPlan(i)}
@@ -446,6 +518,7 @@ const CustomizePage: React.FC = () => {
                   <span className="text-lg font-bold">${option.price}</span>
                   <span className="text-sm opacity-75">{option.period}</span>
                   <span className="text-xs">{option.plan}</span>
+                  {isValidCode && <span className="text-xs text-green-400">10% off applied!</span>}
                 </button>
               ))}
             </div>
@@ -465,13 +538,60 @@ const CustomizePage: React.FC = () => {
               </CardContent>
             </Card>
 
-            <button 
-              onClick={handleCreateWebsite}
-              disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-rose-400 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white py-4 rounded-full font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Creating...' : `Create website for $${pricingOptions[selectedPlan].price}/${pricingOptions[selectedPlan].period}`}
-            </button>
+            {/* Referral Code Input Field */}
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <label className="block text-white font-medium mr-2">
+                  Were you referred by someone?   
+                </label>
+                <input
+                  type="checkbox"
+                  checked={hasReferral}
+                  onChange={(e) => setHasReferral(e.target.checked)}
+                  className="w-6 h-6 accent-rose-500" // Basic styling; adjust as needed
+                />
+              </div>
+              {hasReferral && (
+                <div className="mt-2">
+                  <p className="text-sm text-pink-300">
+                    Enter the code to receive 10% off
+                  </p>
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={handleReferralCodeChange}
+                    placeholder="Enter 6-character code"
+                    maxLength={6}
+                    className={`w-full bg-red-950/50 border ${
+                      referralCode.length === 6 
+                        ? isValidCode 
+                          ? 'border-green-500' 
+                          : 'border-red-500'
+                        : 'border-pink-500/30'
+                    } rounded-lg py-2 px-3 text-white placeholder-pink-300/50`}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Conditional Create Website Button or Error Message */}
+            {hasReferral && (!isValidCode || referralCode.length !== 6) ? (
+              <div className="w-full p-4 bg-red-950/50 border border-red-500/30 rounded-lg text-center">
+                <p className="text-red-300">
+                  {referralCode.length < 6 
+                    ? "Please enter a complete 6-digit referral code or uncheck the referral option"
+                    : "Invalid referral code. Please try a different code or uncheck the referral option"}
+                </p>
+              </div>
+            ) : (
+              <button 
+                onClick={handleCreateWebsite}
+                disabled={isSubmitting}
+                className="w-full bg-gradient-to-r from-rose-400 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white py-4 rounded-full font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Creating...' : `Create website for $${discountedPrices[selectedPlan]?.price || pricingOptions[selectedPlan].price}/${pricingOptions[selectedPlan].period}`}
+              </button>
+            )}
           </div>
         </div>
 

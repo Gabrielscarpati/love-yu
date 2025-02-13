@@ -42,3 +42,9 @@ export interface CharacterCounts {
 export type BenefitsByPlan = {
   [key: number]: string[];
 }
+
+export interface Influencer {
+  id: string;
+  name: string;
+  discountPercentage: number;
+}
