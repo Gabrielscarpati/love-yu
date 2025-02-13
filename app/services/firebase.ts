@@ -8,7 +8,6 @@ import {
 } from "firebase/storage";
 import { firebaseConfig } from "../config/firebase";
 import type { FormData } from "../types";
-import { sendEmail } from './emailService';
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const db = getFirestore(app);

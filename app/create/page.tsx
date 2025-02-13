@@ -221,8 +221,8 @@ const CustomizePage: React.FC = () => {
       const updatedFormData = {
         ...formData,
         userEmail: formData.email,
-        urlSee: `https://example.com/${formData.couplesName}`,
-        urlUpdate: `https://example.com/`
+        urlSee: `https://luv-stories.com/${formData.couplesName}`,
+        urlUpdate: `https://luv-stories.com/`
       };
       
       // Pass updatedFormData to Firebase
@@ -256,15 +256,6 @@ const CustomizePage: React.FC = () => {
       if (!stripe) throw new Error('Stripe failed to load');
   
       const { error } = await stripe.redirectToCheckout({ sessionId });
-
-      const toEmail = "gabrielbrsc15@gmail.com";
-      const emailData: EmailData = {
-        coupleNames: "John & Jane",
-        websiteUrl: "https://luv-stories.com/abc123",
-        updateUrl: "https://luv-stories.com/abc123/edit"
-      };
-
-      await sendConfirmationEmail(toEmail, emailData);
 
       router.push(`/${websiteId}`);
     } catch (error) {

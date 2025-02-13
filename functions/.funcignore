@@ -1,0 +1,5 @@
+node_modules/
+google-cloud-sdk/
+*.log
+.env
+google-cloud-cli-*.tar.gz
