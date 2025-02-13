@@ -6,19 +6,7 @@ import type { PricingPlan } from '../types';
 import HowItWorks from './HowItWorks';
 import { db } from '@/app/services/firebase'; // Updated import path
 import { collection, getCountFromServer } from 'firebase/firestore';
-import { SiSnapchat } from 'react-icons/si';
 
-const TikTokIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
-    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z"/>
-  </svg>
-);
-
-const XIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-  </svg>
-);
 
 const LandingPage: React.FC = () => {
   const router = useRouter();
@@ -89,7 +77,7 @@ const LandingPage: React.FC = () => {
       
       <div className="relative container mx-auto px-4 py-12">
         {/* Hero Section */}
-        <div className="grid md:grid-cols-2 gap-12 items-center mb-24">
+        <div className="grid md:grid-cols-2 gap-16 items-center mb-24"> {/* Changed gap-12 to gap-16 */}
           <div className="text-white">
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-rose-100 to-pink-100 bg-clip-text text-transparent">
               Make Your Love Timeless
@@ -110,12 +98,11 @@ const LandingPage: React.FC = () => {
             </p>
           </div>
           
-          <div className="relative">
-            <div className="absolute -inset-4 bg-gradient-to-r from-rose-400 to-rose-500 opacity-20 blur-xl rounded-full"></div>
+          <div className="relative mt-40">
             <img 
-              src="headerimage-without-text.png"
+              src="landingPage_header.png"
               alt="App Preview" 
-              className="rounded-3xl shadow-2xl relative transform hover:scale-105 transition-transform duration-300"
+              className="transform hover:scale-105 transition-transform duration-300"
             />
           </div>
         </div>

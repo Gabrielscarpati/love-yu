@@ -6,25 +6,25 @@ const HowItWorks = () => {
     {
       title: "Fill in the details",
       icon: MessageSquareHeart,
-      image: "/api/placeholder/400/300",
+      image: "/filling.jpeg",
       description: "Complete the form with your relationship details"
     },
     {
       title: "Make the payment",
       icon: DollarSign,
-      image: "/api/placeholder/400/300",
+      image: "payment-interface.svg",
       description: "Choose your plan and complete the payment"
     },
     {
       title: "Receive your site + QR Code via email",
       icon: Mail,
-      image: "/api/placeholder/400/300",
+      image: "/scan_qrcode.png",
       description: "Get instant access to your personalized page"
     },
     {
       title: "Surprise your loved one",
       icon: Heart,
-      image: "/api/placeholder/400/300",
+      image: "/landingPage_header.png",
       description: "Share your creation with your special someone"
     }
   ];
@@ -86,7 +86,7 @@ const HowItWorks = () => {
               <div className="mb-6">
                 <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-gradient-to-br from-rose-800/50 to-red-800/50 mb-4">
                   <img
-                    src="/api/placeholder/400/300"
+                    src={step.image} // Use the image path from the step object
                     alt={`Step ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
