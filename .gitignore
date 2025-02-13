@@ -24,4 +24,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+next-env.d.tsgoogle-cloud-sdk/bin/anthoscli
+google-cloud-sdk-367.0.0-darwin-x86_64.tar.gz
+google-cloud-sdk/data/cli/gcloud.json
