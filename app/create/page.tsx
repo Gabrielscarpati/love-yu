@@ -206,7 +206,7 @@ const CustomizePage: React.FC = () => {
         return;
       }
 
-      if (!isValidEmail(formData.userEmail)) {
+      if (!isValidEmail(formData.email)) {
         alert('Please enter a valid email address');
         return;
       }
@@ -220,7 +220,7 @@ const CustomizePage: React.FC = () => {
       // Populate new fields
       const updatedFormData = {
         ...formData,
-        userEmail: formData.email,
+        email: formData.email,
         urlSee: `https://luv-stories.com/${formData.couplesName}`,
         urlUpdate: `https://luv-stories.com/`
       };
@@ -398,8 +398,8 @@ const CustomizePage: React.FC = () => {
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300 w-5 h-5" />
                   <input
                     type="email"
-                    name="userEmail"
-                    value={formData.userEmail}
+                    name="email"
+                    value={formData.email}
                     onChange={handleInputChange}
                     className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white placeholder-pink-300/50"
                     placeholder="e.g. yourname@example.com"

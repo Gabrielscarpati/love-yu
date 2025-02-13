@@ -60,7 +60,6 @@ export const createWebsite = async (formData: FormData, selectedPlan: number) =>
       urlUpdate: `https://luv-stories.com/${docRef.id}`,
     });
 
-    // After successful website creation, send confirmation email
 
     
     return docRef.id;
