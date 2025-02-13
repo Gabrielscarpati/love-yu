@@ -1,7 +1,14 @@
+"use client";
+
 import React from 'react';
 import YouTube from 'react-youtube';
 import RelationshipCounter from './RelationshipCounter';
 import { getYouTubeVideoId } from '../utils/youtube'; // You'll need to create this utility function
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
 
 interface PreviewImages {
   top?: string[];
@@ -31,6 +38,9 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
   // Default empty slots for monthly images (max 9)
   const monthlyImages = Array.from({ length: 9 }).map((_, i) => images.monthly?.[i] || null);
 
+  // Check if a valid YouTube URL is provided.
+  const hasYoutube = youtubeUrl && getYouTubeVideoId(youtubeUrl);
+
   return (
     <div className="min-h-screen bg-[#380c0c] relative overflow-hidden">      
       <div className="relative w-full px-4 py-12">
@@ -39,8 +49,8 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
           {coupleName}
         </h1>
 
-        {/* Top featured images with overlap effect */}
-        <div className="relative h-64 mb-20">
+        {/* Desktop version - hidden on mobile */}
+        <div className="hidden md:block relative h-64 mb-20">
           <div className="absolute left-1/2 transform -translate-x-1/2 flex justify-center w-full">
             {topImages.map((img, index) => (
               <div
@@ -71,10 +81,41 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+        {/* Mobile version - shown only on mobile */}
+        <div className="md:hidden mb-20">
+          <Swiper
+            modules={[Navigation, Pagination]}
+            spaceBetween={20}
+            slidesPerView={1}
+            navigation
+            pagination={{ clickable: true }}
+            className="w-full h-64"
+          >
+            {topImages.map((img, index) => (
+              <SwiperSlide key={index}>
+                <div className="w-full h-full rounded-lg shadow-xl overflow-hidden">
+                  {img ? (
+                    <img 
+                      src={img} 
+                      alt={`Featured ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-white/10 text-white/30">
+                      Photo will <br /> appear here
+                    </div>
+                  )}
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
+
+        {/* Adjust the grid layout based on whether a YouTube video exists */}
+        <div className={`grid grid-cols-1 gap-6 mb-20 ${hasYoutube ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           {/* YouTube Player */}
-          <div className="bg-white/10 rounded-lg">
-            {youtubeUrl && getYouTubeVideoId(youtubeUrl) && (
+          {hasYoutube && (
+            <div className="bg-white/10 rounded-lg">
               <div className="aspect-video">
                 <YouTube
                   videoId={getYouTubeVideoId(youtubeUrl)!}
@@ -88,8 +129,8 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
                   className="w-full h-full rounded-lg overflow-hidden"
                 />
               </div>
-            )}
-          </div>
+            </div>
+          )}
       
           {/* Message */}
           <div className="bg-white/10 rounded-lg p-4">
@@ -100,14 +141,14 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
           </div>
       
           {/* Relationship Counter */}
-          <div className="bg-white/10 rounded-lg p-4">
+          <div className=" rounded-lg p-4">
             {startDate && startTime ? (
               <RelationshipCounter
                 startDate={startDate}
                 startTime={startTime}
               />
             ) : (
-              <div className="text-white/80 text-center">
+              <div className="text-white text-center">
                 Add your relationship start date and time to see the counter
               </div>
             )}
@@ -116,7 +157,7 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
 
         {/* Month heading */}
         <h2 className="text-5xl text-white text-center font-serif italic mb-12">
-          February
+          Collage of Memories
         </h2>
 
         {/* Monthly photos grid */}

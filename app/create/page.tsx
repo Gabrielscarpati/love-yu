@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, ChangeEvent, useRef, useCallback } from 'react';
+import React, { useState, useEffect, ChangeEvent, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, ChevronDown, Music, ImagePlus, Heart, Calendar, Clock } from 'lucide-react';
+import { User, Music, ImagePlus, Heart, Calendar, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { FormData, CharacterCounts, PricingOption, BenefitsByPlan } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import RelationshipPreview from '../_components/RelationshipPreview';
 import { createWebsite } from "../services/firebase";
+import { sendConfirmationEmail, EmailData } from '../utils/sendConfirmationEmail';
 import YouTube from 'react-youtube';
-import RelationshipCounter from '../_components/RelationshipCounter';
+import getStripe from '../utils/get-stripe';
 
 const CustomizePage: React.FC = () => {
   const router = useRouter();
@@ -36,42 +37,45 @@ const CustomizePage: React.FC = () => {
   });
 
   const pricingOptions: PricingOption[] = [
-    { price: "0.99", period: "Weekly", plan: "Basic" },
-    { price: "1.99", period: "Monthly", plan: "Plus" },
-    { price: "19.90", period: "Monthly", plan: "Forever" }
+    { price: "6.99", period: "Yearly", plan: "Basic" },
+    { price: "8.99", period: "Yearly", plan: "Plus" },
+    { price: "14.99", period: "One time", plan: "Forever" }
   ];
 
   const [selectedPlan, setSelectedPlan] = useState<number>(0);
 
   const benefitsByPlan: BenefitsByPlan = {
-    0: [ // Basic Love
-      "Basic countdown timer",
-      "3 theme options",
-      "Share on social media",
-      "3 photos upload",
-      "Basic support"
+    0: [
+      "1 Main Photo",
+      "5 Small Photos",
+      "No Song"
     ],
-    1: [ // Love Plus
-      "Advanced countdown timer",
-      "10 premium themes",
-      "Custom messages",
-      "Photo gallery (up to 10)",
-      "Email support",
-      "Background music"
+    1: [
+      "3 Main Photos",
+      "9 Small Photos",
+      "Song"
     ],
-    2: [ // Forever Love
-      "All premium features",
-      "Unlimited themes",
-      "Priority support",
-      "Custom domain",
-      "Advanced analytics",
-      "Unlimited photos",
-      "Premium effects"
+    2: [
+      "3 Main Photos",
+      "9 Small Photos",
+      "Song",
+      "Forever"
     ]
   };
 
   const headerInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  // Whenever the plan changes, if it's Basic, trim extra images.
+  useEffect(() => {
+    if (selectedPlan === 0) {
+      setFormData(prev => ({
+        ...prev,
+        headerImages: prev.headerImages.slice(0, 1),
+        galleryImages: prev.galleryImages.slice(0, 5)
+      }));
+    }
+  }, [selectedPlan]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const { name, value } = e.target;
@@ -79,7 +83,6 @@ const CustomizePage: React.FC = () => {
       ...prev,
       [name]: value
     }));
-    
     setCharacterCounts(prev => ({
       ...prev,
       [name]: value.length
@@ -90,7 +93,12 @@ const CustomizePage: React.FC = () => {
     const files = event.target.files;
     if (!files) return;
 
-    const maxImages = type === 'header' ? 3 : 9;
+    let maxImages = 0;
+    if (type === 'header') {
+      maxImages = selectedPlan === 0 ? 1 : 3;
+    } else {
+      maxImages = selectedPlan === 0 ? 5 : 9;
+    }
     const imageArray = type === 'header' ? 'headerImages' : 'galleryImages';
     const currentImages = formData[imageArray];
 
@@ -125,15 +133,6 @@ const CustomizePage: React.FC = () => {
     monthly: formData.galleryImages.map(img => img.url)
   };
 
-  // Utility to generate a 20-char string of letters & numbers
-  function generateRandomSegment(length: number): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  }
 
   // Email validation function
   const isValidEmail = (email: string): boolean => {
@@ -155,19 +154,47 @@ const CustomizePage: React.FC = () => {
         return;
       }
 
-      const randomSegment = generateRandomSegment(20);
-
       // Populate new fields
       const updatedFormData = {
         ...formData,
         userEmail: formData.email,
         urlSee: `https://example.com/${formData.couplesName}`,
-        urlUpdate: `https://example.com/${formData.couplesName}/${randomSegment}`
+        urlUpdate: `https://example.com/`
       };
-
+      
       // Pass updatedFormData to Firebase
       const websiteId = await createWebsite(updatedFormData, selectedPlan);
-      router.push(`/website/${websiteId}`);
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plan: pricingOptions[selectedPlan].plan,
+          price: pricingOptions[selectedPlan].price,
+          period: pricingOptions[selectedPlan].period,
+          websiteId:websiteId,
+        }),
+      });
+  
+      const { sessionId } = await response.json();
+  
+      // Load Stripe and redirect to Checkout
+      const stripe = await getStripe();
+      if (!stripe) throw new Error('Stripe failed to load');
+  
+      const { error } = await stripe.redirectToCheckout({ sessionId });
+
+      const toEmail = "gabrielbrsc15@gmail.com";
+      const emailData: EmailData = {
+        coupleNames: "John & Jane",
+        websiteUrl: "https://loveyou-9e3bf.web.app/abc123",
+        updateUrl: "https://loveyou-9e3bf.web.app/abc123/edit"
+      };
+
+      await sendConfirmationEmail(toEmail, emailData);
+
+      router.push(`/${websiteId}`);
     } catch (error) {
       console.error('Error creating website:', error);
       alert('Failed to create website. Please try again.');
@@ -191,9 +218,9 @@ const CustomizePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-900 to-red-950 p-8">
+    <div className="min-h-screen bg-[#350100] p-8">
       <div className="w-full">
-        <h1 className="text-4xl font-bold text-white mb-8">Customize Your Page!</h1>
+        <h1 className="text-4xl font-bold text-white mb-8">Customize Your Website!</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Form Section */}
@@ -223,7 +250,7 @@ const CustomizePage: React.FC = () => {
                 <div className="relative">
                   <label className="block text-pink-200 mb-2">Relationship Start Date</label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white w-5 h-5" />
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white w-5 h-5 pointer-events-none" />
                     <input
                       type="date"
                       name="startDate"
@@ -231,7 +258,8 @@ const CustomizePage: React.FC = () => {
                       onChange={handleInputChange}
                       className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white"
                       min="1900-01-01"
-                      max={new Date().toISOString().split("T")[0]} // Set max to today's date
+                      max={new Date().toISOString().split("T")[0]}
+                      onFocus={(e) => e.target.showPicker()}
                     />
                   </div>
                   <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
@@ -240,13 +268,14 @@ const CustomizePage: React.FC = () => {
                 <div className="relative">
                   <label className="block text-pink-200 mb-2">Relationship Start Time</label>
                   <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white w-5 h-5" />
+                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white w-5 h-5 pointer-events-none" />
                     <input
                       type="time"
                       name="startTime"
                       value={formData.startTime}
                       onChange={handleInputChange}
                       className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white"
+                      onFocus={(e) => e.target.showPicker()}
                     />
                   </div>
                   <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
@@ -269,32 +298,35 @@ const CustomizePage: React.FC = () => {
                 <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
               </div>
 
-              <div className="relative">
-                <label className="block text-pink-200 mb-2">Youtube Song (Optional)</label>
+              {/* Render Youtube Song input only if plan is Plus or Forever */}
+              {selectedPlan !== 0 && (
                 <div className="relative">
-                  <Music className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300 w-5 h-5" />
-                  <input
-                    type="url"
-                    name="youtubeUrl"
-                    value={formData.youtubeUrl}
-                    onChange={handleInputChange}
-                    className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white placeholder-pink-300/50"
-                    placeholder="https://www.youtube.com/watch?v=..."
-                  />
-                </div>
-                <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
-                
-                {/* Add the YouTube player */}
-                {formData.youtubeUrl && getYouTubeVideoId(formData.youtubeUrl) && (
-                  <div className="mt-4">
-                    <YouTube
-                      videoId={getYouTubeVideoId(formData.youtubeUrl)!}
-                      opts={opts}
-                      className="w-full rounded-lg overflow-hidden"
+                  <label className="block text-pink-200 mb-2">Youtube Song (Optional)</label>
+                  <div className="relative">
+                    <Music className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300 w-5 h-5" />
+                    <input
+                      type="url"
+                      name="youtubeUrl"
+                      value={formData.youtubeUrl}
+                      onChange={handleInputChange}
+                      className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white placeholder-pink-300/50"
+                      placeholder="https://www.youtube.com/watch?v=..."
                     />
                   </div>
-                )}
-              </div>
+                  <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
+                  
+                  {formData.youtubeUrl && getYouTubeVideoId(formData.youtubeUrl) && (
+                    <div className="mt-4">
+                      <YouTube
+                        videoId={getYouTubeVideoId(formData.youtubeUrl)!}
+                        opts={opts}
+                        className="w-full rounded-lg overflow-hidden"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="relative">
                 <label className="block text-pink-200 mb-2">
                   Enter the email address where we will send the QR code for you to share with your loved one.
@@ -318,7 +350,9 @@ const CustomizePage: React.FC = () => {
             {/* Image Upload Sections */}
             <div className="space-y-6">
               <div>
-                <h3 className="text-white mb-4">Select images of you and your loved that you want to appear first at the top of the page</h3>
+                <h3 className="text-white mb-4">
+                  Select images of you and your loved one that you want to appear first at the top of the page
+                </h3>
                 <input
                   type="file"
                   ref={headerInputRef}
@@ -343,7 +377,7 @@ const CustomizePage: React.FC = () => {
                       </button>
                     </div>
                   ))}
-                  {formData.headerImages.length < 3 && (
+                  {formData.headerImages.length < (selectedPlan === 0 ? 1 : 3) && (
                     <div
                       onClick={() => headerInputRef.current?.click()}
                       className="aspect-square bg-pink-300/20 rounded-xl flex items-center justify-center cursor-pointer hover:bg-pink-300/30 transition-colors"
@@ -355,7 +389,9 @@ const CustomizePage: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-white mb-4">Select the images of you and your love for the month of February</h3>
+                <h3 className="text-white mb-4">
+                  Add additional images of you and your loved one to appear in the gallery section
+                </h3>
                 <input
                   type="file"
                   ref={galleryInputRef}
@@ -364,7 +400,7 @@ const CustomizePage: React.FC = () => {
                   multiple
                   onChange={handleImageUpload('gallery')}
                 />
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {formData.galleryImages.map((image) => (
                     <div key={image.id} className="relative aspect-square">
                       <img
@@ -380,7 +416,7 @@ const CustomizePage: React.FC = () => {
                       </button>
                     </div>
                   ))}
-                  {formData.galleryImages.length < 9 && (
+                  {formData.galleryImages.length < (selectedPlan === 0 ? 5 : 9) && (
                     <div
                       onClick={() => galleryInputRef.current?.click()}
                       className="aspect-square bg-pink-300/20 rounded-xl flex items-center justify-center cursor-pointer hover:bg-pink-300/30 transition-colors"
@@ -402,7 +438,9 @@ const CustomizePage: React.FC = () => {
                   key={i}
                   onClick={() => setSelectedPlan(i)}
                   className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg ${
-                    selectedPlan === i ? 'bg-pink-500' : 'bg-white/10'
+                    selectedPlan === i
+                      ? 'bg-gradient-to-r from-rose-400 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white shadow-lg transform scale-105'
+                      : 'bg-white/10'
                   } text-white w-full transition-all`}
                 >
                   <span className="text-lg font-bold">${option.price}</span>
@@ -430,7 +468,7 @@ const CustomizePage: React.FC = () => {
             <button 
               onClick={handleCreateWebsite}
               disabled={isSubmitting}
-              className="w-full bg-pink-500 hover:bg-pink-600 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-rose-400 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white py-4 rounded-full font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Creating...' : `Create website for $${pricingOptions[selectedPlan].price}/${pricingOptions[selectedPlan].period}`}
             </button>
@@ -440,7 +478,6 @@ const CustomizePage: React.FC = () => {
         {/* Preview Section */}
         <div className="mt-12">
           <h2 className="text-3xl font-bold text-white mb-8">Preview</h2>
-          {/* Remove max-w-4xl constraint and update container classes */}
           <div className="w-full bg-white rounded-xl overflow-hidden shadow-2xl">
             <RelationshipPreview 
               images={previewImages}

@@ -28,6 +28,8 @@ export interface FormData {
   youtubeUrl: string;
   headerImages: UploadedImage[];
   galleryImages: UploadedImage[];
+  stripePaymentIntentId?: string;
+  paymentStatus?: 'pending' | 'completed' | 'failed';
 }
 
 export interface CharacterCounts {

@@ -43,7 +43,7 @@ const RelationshipCounter: React.FC<RelationshipCounterProps> = ({ startDate, st
   }, [startDate, startTime]);
 
   return (
-    <div className="bg-gradient-to-r from-pink-500 to-red-500 p-6 rounded-xl text-white">
+    <div className=" rounded-xl text-white">
       <h3 className="text-2xl font-bold text-center mb-4">Time Together</h3>
       <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
         {Object.entries(timeElapsed).map(([unit, value]) => (
