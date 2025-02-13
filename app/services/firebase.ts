@@ -1,6 +1,7 @@
 import { initializeApp, getApps } from "firebase/app";
 import { 
-  getFirestore, collection, addDoc, updateDoc, doc, getDoc 
+  getFirestore, collection, addDoc, updateDoc, doc, getDoc,
+  Timestamp // Add this import
 } from "firebase/firestore";
 import { 
   getStorage, ref, uploadBytes, getDownloadURL 
@@ -30,6 +31,7 @@ export const createWebsite = async (formData: FormData, selectedPlan: number) =>
       plan: selectedPlan,
       userEmail: formData.email,
       urlSee: `https://luv-stories.com/${formData.couplesName}`,
+      createdAt: Timestamp.now(), // Add this line
     });
 
     // Upload header images and generate unique names for each image
@@ -60,6 +62,7 @@ export const createWebsite = async (formData: FormData, selectedPlan: number) =>
     });
 
     // After successful website creation, send confirmation email
+
     
     return docRef.id;
   } catch (e) {

@@ -53,7 +53,7 @@ const CustomizePage: React.FC = () => {
     { price: "14.99", period: "One time", plan: "Forever" }
   ];
 
-  const [selectedPlan, setSelectedPlan] = useState<number>(0);
+  const [selectedPlan, setSelectedPlan] = useState<number>(2);
   const [hasReferral, setHasReferral] = useState<boolean>(false);
   const [referralCode, setReferralCode] = useState<string>("");
   const [isCheckingCode, setIsCheckingCode] = useState(false);
