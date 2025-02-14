@@ -38,7 +38,7 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
   startTime
 }) => {
   const [showQR, setShowQR] = useState(isNewCreation);
-  const websiteUrl = `https://luv-stories.com/${websiteId}`;
+  const websiteUrl = websiteId ? `https://luv-stories.com/${websiteId}` : '';
 
   // Show QR code only when it's a new creation and we have a websiteId
   useEffect(() => {
@@ -59,14 +59,16 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
   return (
     <div className="min-h-screen bg-[#380c0c] relative overflow-hidden">      
       <div className="relative w-full px-4 py-12">
-        {/* Add QR Code Button */}
-        <div className="absolute top-4 right-4 z-10">
-          <button
-            onClick={() => setShowQR(true)}
-            className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg transition-colors">
-            View QR Code
-          </button>
-        </div>
+        {/* Only show QR Code Button if websiteId exists and is not undefined */}
+        {websiteId && websiteId !== 'undefined' && (
+          <div className="absolute top-4 right-4 z-10">
+            <button
+              onClick={() => setShowQR(true)}
+              className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg transition-colors">
+              View QR Code
+            </button>
+          </div>
+        )}
 
         {/* Couple's name at top */}
         <h1 className="text-4xl text-white text-center font-serif italic mb-12">
@@ -208,7 +210,7 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
       </div>
 
       {/* Only show QR Modal in preview mode */}
-      {showQR && (
+      {showQR && websiteId && websiteId !== 'undefined' && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-lg shadow-xl text-center max-w-md w-full mx-4">
             <h3 className="text-2xl font-bold mb-4 text-rose-900">
