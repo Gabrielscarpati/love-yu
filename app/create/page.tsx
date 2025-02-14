@@ -7,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import type { FormData, CharacterCounts, PricingOption, BenefitsByPlan } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import RelationshipPreview from '../_components/RelationshipPreview';
-import { sendConfirmationEmail, EmailData } from '../utils/sendConfirmationEmail';
 import YouTube from 'react-youtube';
 import getStripe from '../utils/get-stripe';
 import { 
@@ -206,11 +205,6 @@ const CustomizePage: React.FC = () => {
         return;
       }
 
-      if (!isValidEmail(formData.email)) {
-        alert('Please enter a valid email address');
-        return;
-      }
-
       // Updated referral code validation with new error message
       if (hasReferral && !isValidReferralCode(referralCode)) {
         alert('If the checkbox is selected you need to enter all the 6 numbers to receive the discount');
@@ -226,7 +220,7 @@ const CustomizePage: React.FC = () => {
       };
       
       // Pass updatedFormData to Firebase
-      const websiteId = await createWebsite(updatedFormData, selectedPlan);
+      const { websiteId, isNewCreation } = await createWebsite(updatedFormData, selectedPlan);
       
       // Calculate the transaction amount
       const transactionAmount = parseFloat(discountedPrices[selectedPlan]?.price || pricingOptions[selectedPlan].price);
@@ -256,6 +250,18 @@ const CustomizePage: React.FC = () => {
       if (!stripe) throw new Error('Stripe failed to load');
   
       const { error } = await stripe.redirectToCheckout({ sessionId });
+
+      // Update your preview section with the new websiteId and isNewCreation flag
+      <RelationshipPreview 
+        websiteId={websiteId}
+        isNewCreation={isNewCreation}
+        images={previewImages}
+        coupleName={formData.couplesName}
+        youtubeUrl={formData.youtubeUrl}
+        message={formData.message}
+        startDate={formData.startDate}
+        startTime={formData.startTime}
+      />
 
       router.push(`/${websiteId}`);
     } catch (error) {
@@ -322,7 +328,7 @@ const CustomizePage: React.FC = () => {
                       className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white"
                       min="1900-01-01"
                       max={new Date().toISOString().split("T")[0]}
-                      onFocus={(e) => e.target.showPicker()}
+                      onFocus={(e) => (e.target as HTMLInputElement).showPicker()}
                     />
                   </div>
                   <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
@@ -338,7 +344,7 @@ const CustomizePage: React.FC = () => {
                       value={formData.startTime}
                       onChange={handleInputChange}
                       className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white"
-                      onFocus={(e) => e.target.showPicker()}
+                      onFocus={(e) => (e.target as HTMLInputElement).showPicker()}
                     />
                   </div>
                   <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
@@ -389,25 +395,6 @@ const CustomizePage: React.FC = () => {
                   )}
                 </div>
               )}
-
-              <div className="relative">
-                <label className="block text-pink-200 mb-2">
-                  Enter the email address where we will send the QR code for you to share with your loved one.
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-300 w-5 h-5" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full bg-red-950/50 border border-pink-500/30 rounded-lg py-3 px-10 text-white placeholder-pink-300/50"
-                    placeholder="e.g. yourname@example.com"
-                    required
-                  />
-                </div>
-                <p className="text-pink-300/70 text-sm mt-1">Helper Text</p>
-              </div>
             </div>
 
             {/* Image Upload Sections */}
@@ -535,6 +522,7 @@ const CustomizePage: React.FC = () => {
                 <label className="block text-white font-medium mr-2">
                   Were you referred by someone?   
                 </label>
+              
                 <input
                   type="checkbox"
                   checked={hasReferral}
@@ -542,6 +530,12 @@ const CustomizePage: React.FC = () => {
                   className="w-6 h-6 accent-rose-500" // Basic styling; adjust as needed
                 />
               </div>
+              
+              {/* Add the new QR code instruction text */}
+              <p className="text-sm text-pink-300/70 italic">
+                If you need a QR code, click on the button at the top right corner of the next page
+              </p>
+
               {hasReferral && (
                 <div className="mt-2">
                   <p className="text-sm text-pink-300">
@@ -592,7 +586,7 @@ const CustomizePage: React.FC = () => {
           <div className="w-full bg-white rounded-xl overflow-hidden shadow-2xl">
             <RelationshipPreview 
               images={previewImages}
-              coupleName={formData.couplesName || undefined}
+              coupleName={formData.couplesName}
               youtubeUrl={formData.youtubeUrl}
               message={formData.message}
               startDate={formData.startDate}

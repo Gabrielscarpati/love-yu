@@ -20,7 +20,6 @@ export default async function WebsitePage({ params }: PageProps) {
 
   const formData = docSnap.data();
 
-  // Prepare images object from Firestore data
   const images = {
     top: formData.headerImages || [],
     monthly: formData.galleryImages || []
@@ -28,6 +27,8 @@ export default async function WebsitePage({ params }: PageProps) {
 
   return (
     <RelationshipPreview
+      websiteId={coupleId}
+      isNewCreation={false} // This ensures QR won't show on regular visits
       coupleName={formData.couplesName}
       images={images}
       youtubeUrl={formData.youtubeUrl}

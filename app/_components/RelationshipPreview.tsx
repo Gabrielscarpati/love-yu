@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import RelationshipCounter from './RelationshipCounter';
 import { getYouTubeVideoId } from '../utils/youtube'; // You'll need to create this utility function
@@ -9,6 +9,7 @@ import { Navigation, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface PreviewImages {
   top?: string[];
@@ -16,6 +17,8 @@ interface PreviewImages {
 }
 
 interface RelationshipPreviewProps {
+  websiteId: string; // Make this required
+  isNewCreation?: boolean; // Add this
   images?: PreviewImages;
   coupleName?: string;
   youtubeUrl?: string;
@@ -25,6 +28,8 @@ interface RelationshipPreviewProps {
 }
 
 const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({ 
+  websiteId,
+  isNewCreation = false,
   images = {}, 
   coupleName = "Couple's name",
   youtubeUrl,
@@ -32,6 +37,16 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
   startDate,
   startTime
 }) => {
+  const [showQR, setShowQR] = useState(isNewCreation);
+  const websiteUrl = `https://luv-stories.com/${websiteId}`;
+
+  // Show QR code only when it's a new creation and we have a websiteId
+  useEffect(() => {
+    if (isNewCreation) {
+      setShowQR(true);
+    }
+  }, [isNewCreation]);
+
   // Default empty slots for top images (max 3)
   const topImages = Array.from({ length: 3 }).map((_, i) => images.top?.[i] || null);
   
@@ -44,6 +59,15 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
   return (
     <div className="min-h-screen bg-[#380c0c] relative overflow-hidden">      
       <div className="relative w-full px-4 py-12">
+        {/* Add QR Code Button */}
+        <div className="absolute top-4 right-4 z-10">
+          <button
+            onClick={() => setShowQR(true)}
+            className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg transition-colors">
+            View QR Code
+          </button>
+        </div>
+
         {/* Couple's name at top */}
         <h1 className="text-4xl text-white text-center font-serif italic mb-12">
           {coupleName}
@@ -182,6 +206,41 @@ const RelationshipPreview: React.FC<RelationshipPreviewProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Only show QR Modal in preview mode */}
+      {showQR && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl text-center max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold mb-4 text-rose-900">
+              Share Your Love Story!
+            </h3>
+            <div className="mb-6">
+              <QRCodeSVG 
+                value={websiteUrl}
+                size={200}
+                className="mx-auto"
+              />
+            </div>
+            <p className="text-gray-600 mb-4">
+              Scan this QR code to visit your website or share it with your loved one
+            </p>
+            <a 
+              href={websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block mb-4 text-blue-500 hover:underline"
+            >
+              {websiteUrl}
+            </a>
+            <button
+              onClick={() => setShowQR(false)}
+              className="px-6 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -31,6 +31,7 @@ export const createWebsite = async (formData: FormData, selectedPlan: number) =>
       userEmail: formData.email,
       urlSee: `https://luv-stories.com/${formData.couplesName}`,
       createdAt: Timestamp.now(), // Add this line
+      isNewCreation: true // Add this line
     });
 
     // Upload header images and generate unique names for each image
@@ -60,9 +61,10 @@ export const createWebsite = async (formData: FormData, selectedPlan: number) =>
       urlUpdate: `https://luv-stories.com/${docRef.id}`,
     });
 
-
-    
-    return docRef.id;
+    return {
+      websiteId: docRef.id,
+      isNewCreation: true
+    };
   } catch (e) {
     console.error("Error:", e);
     throw e;
