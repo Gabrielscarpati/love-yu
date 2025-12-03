@@ -8,7 +8,8 @@ import type { FormData, CharacterCounts, PricingOption, BenefitsByPlan } from '.
 import { v4 as uuidv4 } from 'uuid';
 import RelationshipPreview from '../_components/RelationshipPreview';
 import YouTube from 'react-youtube';
-import getStripe from '../utils/get-stripe';
+// STRIPE PAYMENT LOGIC COMMENTED OUT - FREE FOR FRIENDS
+// import getStripe from '../utils/get-stripe';
 import { 
   createWebsite, 
   checkInfluencerCode, 
@@ -222,34 +223,37 @@ const CustomizePage: React.FC = () => {
       // Pass updatedFormData to Firebase
       const { websiteId, isNewCreation } = await createWebsite(updatedFormData, selectedPlan);
       
+      // STRIPE PAYMENT LOGIC COMMENTED OUT - FREE FOR FRIENDS
       // Calculate the transaction amount
-      const transactionAmount = parseFloat(discountedPrices[selectedPlan]?.price || pricingOptions[selectedPlan].price);
+      // const transactionAmount = parseFloat(discountedPrices[selectedPlan]?.price || pricingOptions[selectedPlan].price);
 
       // Update influencer stats if a valid referral code was used
-      if (hasReferral && isValidCode && referralCode) {
-        await updateInfluencerStats(referralCode, transactionAmount);
-      }
+      // if (hasReferral && isValidCode && referralCode) {
+      //   await updateInfluencerStats(referralCode, transactionAmount);
+      // }
 
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          plan: pricingOptions[selectedPlan].plan,
-          price: discountedPrices[selectedPlan]?.price || pricingOptions[selectedPlan].price,
-          period: pricingOptions[selectedPlan].period,
-          websiteId: websiteId,
-        }),
-      });
+      // STRIPE CHECKOUT SESSION CREATION COMMENTED OUT
+      // const response = await fetch('/api/create-checkout-session', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     plan: pricingOptions[selectedPlan].plan,
+      //     price: discountedPrices[selectedPlan]?.price || pricingOptions[selectedPlan].price,
+      //     period: pricingOptions[selectedPlan].period,
+      //     websiteId: websiteId,
+      //   }),
+      // });
   
-      const { sessionId } = await response.json();
+      // const { sessionId } = await response.json();
   
+      // STRIPE REDIRECT COMMENTED OUT
       // Load Stripe and redirect to Checkout
-      const stripe = await getStripe();
-      if (!stripe) throw new Error('Stripe failed to load');
+      // const stripe = await getStripe();
+      // if (!stripe) throw new Error('Stripe failed to load');
   
-      const { error } = await stripe.redirectToCheckout({ sessionId });
+      // const { error } = await stripe.redirectToCheckout({ sessionId });
 
       // Update your preview section with the new websiteId and isNewCreation flag
       <RelationshipPreview 
@@ -263,6 +267,7 @@ const CustomizePage: React.FC = () => {
         startTime={formData.startTime}
       />
 
+      // Redirect directly to the website (no payment required)
       router.push(`/${websiteId}`);
     } catch (error) {
       console.error('Error creating website:', error);
@@ -574,7 +579,7 @@ const CustomizePage: React.FC = () => {
                 disabled={isSubmitting}
                 className="w-full bg-gradient-to-r from-rose-400 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white py-4 rounded-full font-semibold transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Creating...' : `Create website for $${discountedPrices[selectedPlan]?.price || pricingOptions[selectedPlan].price}/${pricingOptions[selectedPlan].period}`}
+                {isSubmitting ? 'Creating...' : 'Create website (Free)'}
               </button>
             )}
           </div>
